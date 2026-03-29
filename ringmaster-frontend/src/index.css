@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@theme {
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Crimson Pro', serif;
+  --font-mono: 'DM Mono', monospace;
+
+  --color-ink: #0f0a05;
+  --color-parchment: #faf3e8;
+  --color-cream: #f5ead4;
+  --color-gold: #c8922a;
+  --color-gold-light: #e8b84b;
+  --color-crimson: #8b1a1a;
+  --color-crimson-light: #c42b2b;
+  --color-teal: #1a5f6a;
+  --color-teal-light: #2a8a99;
+  --color-silver: #8a8070;
+}
+@layer base {
+  body {
+    background-color: #0f0a05;
+    color: #faf3e8;
+    font-family: 'Crimson Pro', serif;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(200,146,42,0.3); border-radius: 3px; }
+}
+
+@layer components {
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid rgba(200,146,42,0.25);
+    border-radius: 2px;
+  }
+
+  .gold-text {
+    background: linear-gradient(135deg, #e8b84b 0%, #c8922a 50%, #a06820 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tab-active {
+    color: #e8b84b;
+    border-bottom: 2px solid #c8922a;
+  }
+  .tab-inactive {
+    color: #8a8070;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-inactive:hover { color: #faf3e8; }
+}
