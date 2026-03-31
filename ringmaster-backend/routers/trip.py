@@ -1,9 +1,4 @@
 # routers/trip.py
-"""
-Trip Router — POST /api/trip
-Validates the request, invokes the LangGraph, returns TripResponse.
-"""
-
 from fastapi import APIRouter, HTTPException
 from models.schemas import TripRequest, TripResponse
 from graph.trip_graph import trip_graph
@@ -11,18 +6,8 @@ from graph.trip_graph import trip_graph
 router = APIRouter(prefix="/api", tags=["trip"])
 
 
-@router.post(
-    "/trip",
-    response_model=TripResponse,
-    summary="Plan a full trip",
-    description=(
-        "Runs the LangGraph multi-agent pipeline: "
-        "Sky Gazer (weather), Trailblazer (route), "
-        "Quartermaster (budget), and Itinerary Agent — in parallel."
-    ),
-)
+@router.post("/trip", response_model=TripResponse, summary="Plan a full trip")
 async def plan_trip(req: TripRequest):
-    # Build the initial state from the request
     initial_state = {
         "destination": req.destination,
         "origin":      req.origin,
@@ -32,6 +17,7 @@ async def plan_trip(req: TripRequest):
         "route":       None,
         "budget":      None,
         "itinerary":   None,
+        "events":      None,
         "summary":     None,
         "meta":        {},
         "errors":      [],
@@ -52,6 +38,7 @@ async def plan_trip(req: TripRequest):
         route=final_state.get("route"),
         budget=final_state.get("budget"),
         itinerary=final_state.get("itinerary"),
+        events=final_state.get("events"),
         meta=final_state.get("meta", {}),
     )
 

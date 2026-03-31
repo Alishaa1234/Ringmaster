@@ -54,7 +54,8 @@ export default function App() {
     })
   }
 
-  async function handlePlan({ destination, date, duration }) {
+  // ── origin is now properly destructured and passed through ──
+  async function handlePlan({ origin, destination, date, duration }) {
     resetAgents()
     setPlan(null)
     setError(null)
@@ -71,7 +72,12 @@ export default function App() {
     })
 
     try {
-      const raw = await planTrip({ destination, travel_date: date, duration })
+      const raw = await planTrip({
+        origin,           // ← passed correctly now
+        destination,
+        travel_date: date,
+        duration,
+      })
       clearInterval(msgTimer)
       markAllDone(raw.meta)
       setPlan(adaptResponse(raw))

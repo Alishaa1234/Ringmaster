@@ -1,32 +1,20 @@
 # agents/itinerary_agent.py  —  Itinerary Agent
-"""
-LangGraph node: calls Claude API to generate a day-by-day itinerary,
-writes itinerary key back. Falls back to mock if no API key.
-"""
-
 import time
 import json
 from graph.state import TripState
 from models.schemas import ItineraryData, ItineraryDay
-from config import ANTHROPIC_API_KEY
+from agents.openrouter import call_llm
 
 
 async def itinerary_node(state: TripState) -> dict:
-    """LangGraph node — returns a partial state update dict."""
     t0 = time.perf_counter()
-
     try:
-        if ANTHROPIC_API_KEY:
-            result = await _fetch_from_claude(state)
-        else:
-            result = _mock_itinerary(state["destination"], state["duration"])
-
+        result = await _fetch_from_openrouter(state)
         elapsed = round((time.perf_counter() - t0) * 1000)
         return {
             "itinerary": result,
             "meta": {**state.get("meta", {}), "itinerary_ms": elapsed},
         }
-
     except Exception as exc:
         return {
             "itinerary": _mock_itinerary(state["destination"], state["duration"]),
@@ -34,96 +22,88 @@ async def itinerary_node(state: TripState) -> dict:
         }
 
 
-async def _fetch_from_claude(state: TripState) -> ItineraryData:
-    import anthropic
-    client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+async def _fetch_from_openrouter(state: TripState) -> ItineraryData:
+    dest     = state["destination"]
+    duration = state["duration"]
+    date     = state["travel_date"]
 
-    prompt = f"""You are a seasoned India travel guide. Create a vivid, practical {state["duration"]}-day itinerary for {state["destination"]}.
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"You are an expert travel guide for {dest}, India. "
+                "You know all real local attractions, restaurants, markets, and hidden gems. "
+                "You always respond with valid JSON only — no markdown, no extra text. "
+                "You never repeat the same place across multiple days."
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"""Create a detailed {duration}-day itinerary for {dest}, India.
+Travel start date: {date}.
 
-Return ONLY valid JSON, no markdown:
+Rules:
+- Use REAL place names specific to {dest}
+- Each day must visit DIFFERENT places — no repetition
+- Day 1 = arrival and orientation
+- Last day = departure morning, pack up, head home
+- Be specific — name exact temples, markets, restaurants, viewpoints
+
+Return ONLY this JSON with exactly {duration} days:
 {{
   "days": [
     {{
       "day": 1,
-      "title": "<evocative day title>",
-      "morning": "<specific morning activity>",
-      "afternoon": "<specific afternoon activity>",
-      "evening": "<specific evening activity>",
-      "tip": "<one hyper-local insider tip>"
+      "title": "catchy day title",
+      "morning": "specific morning activity with real place name in {dest}",
+      "afternoon": "specific afternoon activity with real place name in {dest}",
+      "evening": "specific evening activity with real place name in {dest}",
+      "tip": "one practical local insider tip"
     }}
   ]
-}}
+}}""",
+        },
+    ]
 
-Be specific — name actual places, markets, dishes, streets. Travel date: {state["travel_date"]}."""
+    raw   = await call_llm(messages, temperature=0.7)
+    start = raw.find("{")
+    end   = raw.rfind("}") + 1
+    data  = json.loads(raw[start:end])
 
-    msg = await client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1000,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    days = []
+    for i, d in enumerate(data.get("days", [])[:duration]):
+        days.append(ItineraryDay(
+            day=i + 1,
+            title=d.get("title", f"Day {i+1} in {dest}"),
+            morning=d.get("morning", f"Morning in {dest}"),
+            afternoon=d.get("afternoon", f"Afternoon in {dest}"),
+            evening=d.get("evening", f"Evening in {dest}"),
+            tip=d.get("tip", "Ask locals for the best hidden spots."),
+        ))
 
-    raw = msg.content[0].text.replace("```json", "").replace("```", "").strip()
-    data = json.loads(raw)
-    return ItineraryData(
-        days=[ItineraryDay(**d) for d in data["days"]],
-        source="Claude AI (live)",
-    )
+    # Fill any missing days
+    while len(days) < duration:
+        n = len(days) + 1
+        days.append(ItineraryDay(
+            day=n, title=f"Day {n} — Free exploration",
+            morning="Revisit your favourite spot.",
+            afternoon="Browse local markets and pick up souvenirs.",
+            evening="Farewell dinner at the best restaurant you discovered.",
+            tip="The best moments are always the unplanned ones.",
+        ))
+
+    return ItineraryData(days=days, source="GPT-4o mini via OpenRouter")
 
 
 def _mock_itinerary(destination: str, duration: int) -> ItineraryData:
-    templates = [
-        ("Arrival & First Impressions",
-         "Land and check in. Explore the neighbourhood on foot.",
-         "Visit the main market — grab local street food for lunch.",
-         "Sunset stroll + dinner at a well-reviewed local restaurant.",
-         "Ask your hotel for a scooter rental recommendation — cheapest and most fun way around."),
-        ("Heritage & Culture",
-         "Visit the top UNESCO or heritage site — arrive early to beat crowds.",
-         "Local history museum or cultural centre.",
-         "Traditional performance or live music venue.",
-         "Mondays often have free entry at government-run museums."),
-        ("Nature & Adventure",
-         "Early morning nature trek or boat trip — wildlife most active at dawn.",
-         "Waterfall, viewpoint, or beach depending on terrain.",
-         "Spa or Ayurvedic massage — well-earned after the trek.",
-         "Book adventure activities the day before — popular slots sell out."),
-        ("Local Life",
-         "Morning at the local weekly market — freshest produce and best prices.",
-         "Cooking class or food tour — learn 2–3 signature dishes.",
-         "Rooftop dinner with city/sea views.",
-         "The best local food is almost always in lanes behind the main tourist street."),
-        ("Day Trip",
-         "Full-day excursion to a nearby village or natural attraction.",
-         "Picnic lunch at the destination.",
-         "Return by sunset — evening at leisure.",
-         "Hire a local guide for day trips — they know shortcuts and secret spots."),
-        ("Free & Flexible",
-         "Sleep in. Lazy breakfast at a café.",
-         "Shopping — local handicrafts, spices, and textiles.",
-         "Farewell dinner at your favourite restaurant from the trip.",
-         "Bargain firmly at souvenir shops — opening price is usually 2–3x the fair price."),
-        ("Departure",
-         "Last sunrise walk. Soak in the atmosphere one final time.",
-         "Pack up. Quick visit to a spot you missed.",
-         "Head to airport or station. Grab local snacks for the journey.",
-         "Arrive 2 hours early for flights from smaller airports — security queues can surprise."),
-    ]
-
     days = []
-    for i in range(min(duration, len(templates))):
-        t = templates[i]
+    for i in range(duration):
         days.append(ItineraryDay(
-            day=i+1, title=t[0],
-            morning=t[1], afternoon=t[2], evening=t[3], tip=t[4],
+            day=i + 1,
+            title=f"Day {i+1} in {destination}",
+            morning=f"Morning exploration of {destination}.",
+            afternoon="Visit local market and have lunch.",
+            evening="Evening stroll and local dinner.",
+            tip="Ask locals for hidden gems.",
         ))
-
-    while len(days) < duration:
-        days.append(ItineraryDay(
-            day=len(days)+1, title="Explore at Leisure",
-            morning="Follow your instincts — revisit a favourite spot.",
-            afternoon="Wander without a plan — the best discoveries are unplanned.",
-            evening="Reflect on the trip over a long dinner.",
-            tip="The best travel days are often the unscheduled ones.",
-        ))
-
-    return ItineraryData(days=days, source="Mock (no API key)")
+    return ItineraryData(days=days, source="Mock (OpenRouter unavailable)")

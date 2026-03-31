@@ -7,13 +7,19 @@ export default function PlanInput({ onPlan, loading }) {
     return d.toISOString().split('T')[0]
   })()
 
+  const [origin,      setOrigin]      = useState('')
   const [destination, setDestination] = useState('')
-  const [date, setDate]               = useState(defaultDate)
-  const [duration, setDuration]       = useState('7')
+  const [date,        setDate]        = useState(defaultDate)
+  const [duration,    setDuration]    = useState('7')
 
   function handleSubmit() {
-    if (!destination.trim()) return
-    onPlan({ destination: destination.trim(), date, duration: Number(duration) })
+    if (!destination.trim() || !origin.trim()) return
+    onPlan({
+      origin:      origin.trim(),
+      destination: destination.trim(),
+      date,
+      duration: Number(duration),
+    })
   }
 
   return (
@@ -22,8 +28,22 @@ export default function PlanInput({ onPlan, loading }) {
         ◈ Plan Your Tour
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_auto] gap-4 items-end">
-        {/* Destination */}
+      {/* Row 1 — Origin + Destination */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div className="flex flex-col gap-1">
+          <label className="font-mono text-[11px] tracking-wider uppercase text-silver">
+            Travelling From
+          </label>
+          <input
+            type="text"
+            value={origin}
+            onChange={e => setOrigin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="e.g. Delhi, Bangalore, Kolkata…"
+            className="bg-white/5 border border-gold/20 focus:border-gold text-parchment px-3 py-2 font-body text-base outline-none transition-colors placeholder:text-parchment/20 rounded-sm"
+          />
+        </div>
+
         <div className="flex flex-col gap-1">
           <label className="font-mono text-[11px] tracking-wider uppercase text-silver">
             Destination
@@ -37,8 +57,10 @@ export default function PlanInput({ onPlan, loading }) {
             className="bg-white/5 border border-gold/20 focus:border-gold text-parchment px-3 py-2 font-body text-base outline-none transition-colors placeholder:text-parchment/20 rounded-sm"
           />
         </div>
+      </div>
 
-        {/* Date */}
+      {/* Row 2 — Date + Duration + Button */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-4 items-end">
         <div className="flex flex-col gap-1">
           <label className="font-mono text-[11px] tracking-wider uppercase text-silver">
             Travel Date
@@ -51,7 +73,6 @@ export default function PlanInput({ onPlan, loading }) {
           />
         </div>
 
-        {/* Duration */}
         <div className="flex flex-col gap-1">
           <label className="font-mono text-[11px] tracking-wider uppercase text-silver">
             Duration
@@ -67,10 +88,9 @@ export default function PlanInput({ onPlan, loading }) {
           </select>
         </div>
 
-        {/* Button */}
         <button
           onClick={handleSubmit}
-          disabled={loading || !destination.trim()}
+          disabled={loading || !destination.trim() || !origin.trim()}
           className="bg-gradient-to-br from-crimson to-[#6b1515] border border-crimson-light/40 text-parchment px-6 py-2 font-display font-bold text-base tracking-wide rounded-sm transition-all hover:from-crimson-light hover:to-crimson hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap"
         >
           {loading ? '⏳ Planning…' : '✦ Forge the Plan'}
