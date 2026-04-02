@@ -3,16 +3,12 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 
-# ── REQUEST ────────────────────────────────────────────────────────────────
-
 class TripRequest(BaseModel):
     destination: str = Field(..., example="Goa")
     origin:      str = Field(default="Mumbai", example="Mumbai")
     travel_date: str = Field(..., example="2026-04-10")
     duration:    int = Field(default=7, ge=1, le=30, example=7)
 
-
-# ── WEATHER ────────────────────────────────────────────────────────────────
 
 class DailyForecast(BaseModel):
     day:  str
@@ -32,8 +28,6 @@ class WeatherData(BaseModel):
     source:         str = "OpenWeatherMap"
 
 
-# ── ROUTE ──────────────────────────────────────────────────────────────────
-
 class TransportOption(BaseModel):
     mode:        str
     duration:    str
@@ -49,8 +43,6 @@ class RouteData(BaseModel):
     scenic_note:       str
     source:            str = "mock"
 
-
-# ── BUDGET ─────────────────────────────────────────────────────────────────
 
 class BudgetTier(BaseModel):
     low:  int
@@ -74,8 +66,6 @@ class BudgetData(BaseModel):
     source:                  str = "Claude AI"
 
 
-# ── ITINERARY ──────────────────────────────────────────────────────────────
-
 class ItineraryDay(BaseModel):
     day:       int
     title:     str
@@ -88,8 +78,6 @@ class ItineraryData(BaseModel):
     days:   list[ItineraryDay]
     source: str = "Claude AI"
 
-
-# ── EVENTS ─────────────────────────────────────────────────────────────────
 
 class EventItem(BaseModel):
     name:        str
@@ -106,8 +94,6 @@ class EventsData(BaseModel):
     source:       str = "Claude AI"
 
 
-# ── COMBINED RESPONSE ──────────────────────────────────────────────────────
-
 class TripResponse(BaseModel):
     destination: str
     origin:      str
@@ -122,7 +108,18 @@ class TripResponse(BaseModel):
     meta:        dict = Field(default_factory=dict)
 
 
-# ── ERROR ──────────────────────────────────────────────────────────────────
+class CompareRequest(BaseModel):
+    destination_a: str = Field(..., example="Goa")
+    destination_b: str = Field(..., example="Pondicherry")
+    origin:        str = Field(default="Mumbai", example="Mumbai")
+    travel_date:   str = Field(..., example="2026-04-10")
+    duration:      int = Field(default=5, ge=1, le=14, example=5)
+
+class CompareResponse(BaseModel):
+    destination_a: TripResponse
+    destination_b: TripResponse
+    verdict:       str = ""
+
 
 class ErrorResponse(BaseModel):
     error:  str
