@@ -35,6 +35,18 @@ class TransportOption(BaseModel):
     comfort:     int
     recommended: bool = False
 
+
+class Coordinate(BaseModel):
+    lat: float
+    lng: float
+
+class Waypoint(BaseModel):
+    name:        str
+    lat:         float
+    lng:         float
+    type:        str = "waypoint"  # origin | destination | waypoint
+    description: Optional[str] = None
+
 class RouteData(BaseModel):
     from_city:         str
     to_city:           str
@@ -42,6 +54,11 @@ class RouteData(BaseModel):
     transport_options: list[TransportOption]
     scenic_note:       str
     source:            str = "mock"
+    # Map data
+    origin_coords:      Optional[Coordinate]    = None
+    destination_coords: Optional[Coordinate]    = None
+    waypoints:          list[Waypoint]          = []
+    route_polyline:     list[list[float]]       = []  # [[lat,lng], ...]
 
 
 class BudgetTier(BaseModel):

@@ -13,7 +13,6 @@ export function adaptResponse(response) {
     summary:     summary ?? `A ${duration}-day adventure awaits in ${destination}.`,
     meta:        meta ?? {},
 
-    // ── Weather ──────────────────────────────────────────────────────────
     weather: weather ? {
       condition:      weather.condition,
       tempHigh:       weather.temp_high,
@@ -25,7 +24,6 @@ export function adaptResponse(response) {
       source:         weather.source,
     } : null,
 
-    // ── Route ────────────────────────────────────────────────────────────
     route: route ? {
       from:             route.from_city,
       to:               route.to_city,
@@ -33,9 +31,13 @@ export function adaptResponse(response) {
       transportOptions: route.transport_options,
       scenicNote:       route.scenic_note,
       source:           route.source,
+      // Map data
+      originCoords:      route.origin_coords,
+      destinationCoords: route.destination_coords,
+      waypoints:         route.waypoints ?? [],
+      routePolyline:     route.route_polyline ?? [],
     } : null,
 
-    // ── Budget ───────────────────────────────────────────────────────────
     budget: budget ? {
       currency:              budget.currency,
       transport:             budget.transport,
@@ -47,10 +49,8 @@ export function adaptResponse(response) {
       source:                budget.source,
     } : null,
 
-    // ── Itinerary ────────────────────────────────────────────────────────
     itinerary: itinerary ? itinerary.days : null,
 
-    // ── Events ───────────────────────────────────────────────────────────
     events: events ? {
       festivals:   events.festivals,
       thingsToDo:  events.things_to_do,

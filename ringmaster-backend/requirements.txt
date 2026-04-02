@@ -7,3 +7,4 @@ anthropic==0.28.0
 langgraph==0.1.19
 langchain-core>=0.2.22,<0.3
 ollama==0.4.4
+polyline==2.0.2
